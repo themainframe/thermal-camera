@@ -18,6 +18,7 @@
 #include "shared_frame.h"
 
 static const char* TAG = "WiFiTask";
+static vospi_frame_t c_frame_buf;
 
 esp_err_t event_handler(void* ctx, system_event_t* event)
 {
@@ -92,16 +93,25 @@ void wifi_task(c_frame_t* c_frame)
     // Wait for a frame to be available
     if (xSemaphoreTake(c_frame->sem, 1000) == pdTRUE) {
 
+      // Quickly copy the frame into our local buffer to release the sem faster
+      memcpy(&c_frame_buf, &c_frame->frame, sizeof(vospi_frame_t));
+      xSemaphoreGive(c_frame->sem);
+
       // Write the frame out to our client
-      char* http_headers = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
+      char* http_headers =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Connection: close\r\n"
+        "\r\n";
+
       write(client_sock, http_headers, strlen(http_headers));
 
       // Write the frame data
-      char id[30];
-      sprintf(id, "ID is: %02x", c_frame->frame.segments[0].packets[20].id);
-      write(client_sock, id, strlen(id));
-
-      xSemaphoreGive(c_frame->sem);
+      for (int seg = 0; seg < VOSPI_SEGMENTS_PER_FRAME; seg ++) {
+        for (int pkt = 0; pkt < VOSPI_PACKETS_PER_SEGMENT_NORMAL; pkt ++) {
+          write(client_sock, c_frame_buf.segments[seg].packets[pkt].symbols, VOSPI_PACKET_SYMBOLS);
+        }
+      }
 
     } else {
       ESP_LOGW(TAG, "couldn't obtain c_frame sem, can't send a frame right now");
