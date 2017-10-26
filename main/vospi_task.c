@@ -13,6 +13,8 @@
 #include "driver/spi_master.h"
 #include "shared_frame.h"
 
+#define SPI_SPEED_MHZ 20000000
+
 static const char* TAG = "VoSPITask";
 
 void vospi_task(c_frame_t* c_frame)
@@ -28,9 +30,12 @@ void vospi_task(c_frame_t* c_frame)
 
   // Initialise SPI hardware
   ESP_LOGI(TAG, "starting VoSPI initialisation...");
-  vospi_init(12000000);
+  vospi_init(SPI_SPEED_MHZ);
   vTaskDelay(3000 / portTICK_RATE_MS);
 
+  // Flash an LED once per frame
+  gpio_set_direction(GPIO_NUM_5, GPIO_MODE_OUTPUT);
+  gpio_set_level(GPIO_NUM_5, 0);
 
   while(1) {
     // Synchronise and transfer a single frame
@@ -42,11 +47,13 @@ void vospi_task(c_frame_t* c_frame)
     ESP_LOGI(TAG, "VoSPI stream synchronised");
 
     while (1) {
-      
+
+      gpio_set_level(GPIO_NUM_5, 1);
       if (!transfer_frame(frame)) {
         ESP_LOGI(TAG, "resynchronising...");
         break;
       }
+      gpio_set_level(GPIO_NUM_5, 0);
 
       // Obtain the semaphore to update the current frame, if we can't update
       // the current frame, just drop this one and try again next time

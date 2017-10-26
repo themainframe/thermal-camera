@@ -9,7 +9,6 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "driver/spi_master.h"
-#include "driver/gpio.h"
 
 #define LOG_LOCAL_LEVEL ESP_LOG_INFO
 static const char* TAG = "VOSPIDriver";
@@ -20,7 +19,6 @@ static spi_device_handle_t spi;
  */
 int spi_read(void* buf, uint32_t len)
 {
-  gpio_set_level(GPIO_NUM_5, 1);
   esp_err_t ret;
   spi_transaction_t t;
   memset(&t, 0, sizeof(t));
@@ -29,7 +27,6 @@ int spi_read(void* buf, uint32_t len)
   t.rx_buffer = buf;
   ret = spi_device_transmit(spi, &t);
   assert(ret == ESP_OK);
-  gpio_set_level(GPIO_NUM_5, 0);
   return ret;
 }
 
@@ -38,15 +35,14 @@ int spi_read(void* buf, uint32_t len)
  */
 int vospi_init(uint32_t speed)
 {
-  // Flash an LED for every SPI transfer
-  gpio_set_direction(GPIO_NUM_5, GPIO_MODE_OUTPUT);
-  gpio_set_level(GPIO_NUM_5, 0);
-
   esp_err_t ret;
   spi_bus_config_t buscfg = {
     .miso_io_num=PIN_NUM_MISO,
+    .mosi_io_num=PIN_NUM_MOSI,
     .sclk_io_num=PIN_NUM_CLK,
-    .max_transfer_sz=50000
+    .max_transfer_sz=50000,
+    .quadwp_io_num=-1,
+    .quadhd_io_num=-1
   };
 
   spi_device_interface_config_t devcfg = {
@@ -122,15 +118,6 @@ int sync_and_transfer_frame(vospi_frame_t* frame)
         ESP_LOGE(TAG, "failed to receive the first segment");
         return 0;
       }
-      // printf("TTT: %d (%02x)\n", frame->segments[0].packets[20].id >> 12, frame->segments[0].packets[20].id >> 12);
-      // for (int pkt = 0; pkt < VOSPI_PACKETS_PER_SEGMENT_NORMAL; pkt ++) {
-      //   printf("Pkt. %d [%02x]: ", pkt, frame->segments[0].packets[pkt].id);
-      //   for (int sym = 0; sym < 10; sym ++) {
-      //     printf("%02x" ,frame->segments[0].packets[pkt].symbols[sym]);
-      //   }
-      //   printf("\n");
-      // }
-      // printf("\n");
 
       // If the packet number isn't even correct, we'll reset the bus to sync
       packet_20_num = frame->segments[0].packets[20].id & 0xff;
