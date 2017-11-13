@@ -6,7 +6,13 @@
 #include "esp_system.h"
 #include "esp_heap_caps.h"
 #include <string.h>
+#include <stdlib.h>
+#include "vospi.h"
+#include "shared_frame.h"
 #include "ili9341_cmds.h"
+#include "falsecolour.h"
+
+#define RGB_TO_16BIT(r, g, b) (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3))
 
 #define VSPI_PIN_NUM_MISO 19
 #define VSPI_PIN_NUM_MOSI 23
@@ -76,9 +82,6 @@ static const ili_init_cmd_t ili_init_cmds_drom[] = {
   // Frame control
   {ILI9341_FRMCTR1, {0x00, 0x18}, 2},
 
-  // Display function
-  {ILI9341_DFUNCTR, {0x08, 0x82, 0x27}, 3},
-
   // Gamma (off, curve 1)
   {0xF2, {0x00}, 1},
   {ILI9341_GAMMASET, {0x01}, 1},
@@ -93,6 +96,13 @@ static const ili_init_cmd_t ili_init_cmds_drom[] = {
   // Dummy command that indicates the end of our list
   {0, {0}, 0xff}
 };
+
+static vospi_frame_t c_frame_buf;
+
+uint8_t map_to_byte(uint16_t in, uint16_t in_min, uint16_t in_max)
+{
+  return (in - in_min) * 254 / (in_max - in_min);
+}
 
 void ili_command(ili_device_t* ili_handle, const uint8_t command)
 {
@@ -112,7 +122,7 @@ void ili_command(ili_device_t* ili_handle, const uint8_t command)
   free(transaction);
 }
 
-void ili_data(ili_device_t* ili_handle, const uint8_t* data, int len)
+void ili_data(ili_device_t* ili_handle, void* data, int len)
 {
   // Do we need to send anything?
   if (len == 0) {
@@ -196,7 +206,7 @@ esp_err_t ili_bus_add_device(spi_host_device_t host, ili_device_t* device)
   spi_device_interface_config_t devcfg = {
     .command_bits = 0,
     .address_bits = 0,
-    .clock_speed_hz = 32000000,
+    .clock_speed_hz = 20000000,
     .mode = 0,
     .spics_io_num = device->spics_io_num,
     .queue_size = 64,
@@ -216,7 +226,7 @@ esp_err_t ili_bus_add_device(spi_host_device_t host, ili_device_t* device)
 }
 
 
-void display_task()
+void display_task(c_frame_t* c_frame)
 {
   ESP_LOGI(TAG, "start DisplayTask...");
 
@@ -224,13 +234,13 @@ void display_task()
       .miso_io_num = VSPI_PIN_NUM_MISO,
       .mosi_io_num = VSPI_PIN_NUM_MOSI,
       .sclk_io_num = VSPI_PIN_NUM_CLK,
-      .max_transfer_sz = 50000,
+      .max_transfer_sz = 64000,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1
   };
 
   ESP_LOGI(TAG, "initialise SPI bus");
-  spi_bus_initialize(HSPI_HOST, &bus_cfg, 1);
+  spi_bus_initialize(VSPI_HOST, &bus_cfg, 2);
 
   ESP_LOGI(TAG, "initialise ILI device");
   ili_device_t* device = malloc(sizeof(ili_device_t));
@@ -238,20 +248,18 @@ void display_task()
   device->spics_io_num = VSPI_PIN_NUM_CS;
   device->reset_io_num = PIN_NUM_RESET;
 
-  ili_bus_add_device(HSPI_HOST, device);
+  // Use VSPI for this interface
+  ili_bus_add_device(VSPI_HOST, device);
 
   ESP_LOGI(TAG, "initialise display");
   ili_init(device);
 
-  // Exit sleep
-  ili_command(device, ILI9341_SLPOUT);
-
-  vTaskDelay(1000 / portTICK_RATE_MS);
   ESP_LOGI(TAG, "turning the display on");
   ili_command(device, ILI9341_DISPON);
 
+  // Exit sleep
+  ili_command(device, ILI9341_SLPOUT);
 
-  vTaskDelay(1000 / portTICK_RATE_MS);
   ESP_LOGI(TAG, "drawing some shit...");
 
   // Column address set
@@ -259,40 +267,92 @@ void display_task()
   uint8_t caset_d[4] = {
     0,
     0,
-    320 >> 8,
-    320 & 0xff
+    319 >> 8,     //
+    319 & 0xff    // End position is 319
   };
   ili_data(device, caset_d, 4);
 
-  // Page address set
-  ili_command(device, ILI9341_PASET);
-  uint8_t paset_d[4] = {
-    0,
-    0,
-    240 >> 8,
-    240 & 0xff
-  };
-  ili_data(device, paset_d, 4);
+  for (;;) {
 
-  uint8_t pix_d[240 * 2];
-  uint16_t col = 0xf800;
+    // Wait for a frame to be available
+    if (xSemaphoreTake(c_frame->sem, 1000) == pdTRUE) {
 
-  ili_command(device, ILI9341_RAMWR);
-  for (uint16_t x = 0; x < 320; x ++) {
+      // Quickly copy the frame into our local buffer to release the sem faster
+      memcpy(&c_frame_buf, &c_frame->frame, sizeof(vospi_frame_t));
+      xSemaphoreGive(c_frame->sem);
 
-    if (x > 160) {
-      col = 0x001f;
+      // Perform a preliminary scan to establish the pixel value range
+      uint16_t max = 0, min = UINT16_MAX;
+      for (uint8_t seg = 0; seg < VOSPI_SEGMENTS_PER_FRAME; seg ++) {
+        for (uint8_t pkt = 0; pkt < VOSPI_PACKETS_PER_SEGMENT_NORMAL; pkt ++) {
+          for (uint8_t sym = 0; sym < VOSPI_PACKET_SYMBOLS; sym += 2) {
+            uint16_t pix_val = c_frame_buf.segments[seg].packets[pkt].symbols[sym] << 8 |
+              c_frame_buf.segments[seg].packets[pkt].symbols[sym + 1];
+            max = pix_val > max ? pix_val : max;
+            min = pix_val < min ? pix_val : min;
+          }
+        }
+      }
+
+      // Each frame contains 4 segments
+      for (uint8_t seg = 0; seg < VOSPI_SEGMENTS_PER_FRAME; seg ++) {
+
+        // Allocate space for pixel values for the display
+        // There will be 4x the bytes because we're scaling to fit a display twice the size
+        uint8_t* disp_segment_data = malloc(VOSPI_PACKETS_PER_SEGMENT_NORMAL * VOSPI_PACKET_SYMBOLS * 4);
+
+        // Each segment contains 30 lines consisting of 2 packets each
+        uint16_t offset = 0;
+        for (int8_t line = 0; line < VOSPI_PACKETS_PER_SEGMENT_NORMAL / 2; line ++) {
+
+          // Copy data out of the two packets *twice* for this line, scaling them too
+          for (uint8_t line_cpy = 0; line_cpy < 2; line_cpy ++) {
+            for (uint8_t pkt = 0; pkt < 2; pkt ++) {
+              for (uint8_t sym = 0; sym < VOSPI_PACKET_SYMBOLS; sym += 2) {
+
+                uint16_t pix_value = c_frame_buf.segments[seg].packets[line * 2 + pkt].symbols[sym] << 8 |
+                  c_frame_buf.segments[seg].packets[line * 2 + pkt].symbols[sym + 1];
+                uint8_t scaled_v = 254 - map_to_byte(pix_value, max + 2, min + 1);
+                uint16_t colour_v = RGB_TO_16BIT(scaled_v, scaled_v, scaled_v);
+
+                if (seg == 0 && line == 0 && line_cpy == 0 && pkt == 0 && sym == 0) {
+                  // First pixel stats
+                  // ESP_LOGI(TAG, "fpStats: value: %d, scaled: %d (min: %d, max: %d), colour: %02x", pix_value, scaled_v, min, max, colour_v);
+                }
+
+                // Write the same pixel twice, we're doubling width
+                disp_segment_data[offset ++] = colour_v >> 8;
+                disp_segment_data[offset ++] = colour_v & 0xff;
+                disp_segment_data[offset ++] = colour_v >> 8;
+                disp_segment_data[offset ++] = colour_v & 0xff;
+              }
+            }
+          }
+        }
+
+        // Set up the graphic RAM page position for this segment
+        ili_command(device, ILI9341_PASET);
+        uint8_t paset_d[4] = {
+          seg * 60 >> 8,
+          seg * 60 & 0xff,
+          (seg + 1) * 60 >> 8,
+          (seg + 1) * 60 & 0xff
+        };
+        ili_data(device, paset_d, 4);
+
+        // Draw the pixel values for the segment to the display
+        ili_command(device, ILI9341_RAMWR);
+        ili_data(device, disp_segment_data, (VOSPI_PACKETS_PER_SEGMENT_NORMAL * VOSPI_PACKET_SYMBOLS * 4));
+
+        // Free this segment's pixel values
+        free(disp_segment_data);
+      }
+
+      // ESP_LOGI(TAG, "fStats: Min: %d, Max: %d, cVal: %d, cCol: %02x, hVal: %d, hCol: %02x", min, max, cold_v, cold_c, hot_v, hot_c);
+      vTaskDelay(100 / portTICK_RATE_MS);
+
     }
-
-    for (uint16_t y = 0; y < 240 * 2; y += 2) {
-      pix_d[y] = col >> 8;
-      pix_d[y + 1] = col & 0xff;
-    }
-
-    ili_data(device, pix_d, 240 * 2);
   }
-
-
 
   while (true) ;
 }

@@ -18,7 +18,7 @@ void app_main()
   xSemaphoreGive(c_frame.sem);
 
   // Start tasks
-  // xTaskCreate(&vospi_task, "vospi_task", 30000, &c_frame, 5, NULL);
+  xTaskCreate(&vospi_task, "vospi_task", 30000, &c_frame, 5, NULL);
   // xTaskCreate(&wifi_task, "wifi_task", 10000, &c_frame, 5, NULL);
-  xTaskCreate(&display_task, "display_task", 16000, NULL, 5, NULL);
+  xTaskCreate(&display_task, "display_task", 16000, &c_frame, 5, NULL);
 }
