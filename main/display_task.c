@@ -72,7 +72,7 @@ static const ili_init_cmd_t ili_init_cmds_drom[] = {
     (0 << 6) |  // MX
     (1 << 5) |  // MV
     (1 << 4) |  // ML
-    (0 << 3) |  // BGR
+    (1 << 3) |  // BGR
     (1 << 2)    // MH
   }, 1},
 
@@ -101,7 +101,7 @@ static vospi_frame_t c_frame_buf;
 
 uint8_t map_to_byte(uint16_t in, uint16_t in_min, uint16_t in_max)
 {
-  return (in - in_min) * 254 / (in_max - in_min);
+  return (in - in_min) * (254 - 20) / (in_max - in_min) + 20;
 }
 
 void ili_command(ili_device_t* ili_handle, const uint8_t command)
@@ -206,7 +206,7 @@ esp_err_t ili_bus_add_device(spi_host_device_t host, ili_device_t* device)
   spi_device_interface_config_t devcfg = {
     .command_bits = 0,
     .address_bits = 0,
-    .clock_speed_hz = 20000000,
+    .clock_speed_hz = 30000000,
     .mode = 0,
     .spics_io_num = device->spics_io_num,
     .queue_size = 64,
@@ -313,7 +313,7 @@ void display_task(c_frame_t* c_frame)
                 uint16_t pix_value = c_frame_buf.segments[seg].packets[line * 2 + pkt].symbols[sym] << 8 |
                   c_frame_buf.segments[seg].packets[line * 2 + pkt].symbols[sym + 1];
                 uint8_t scaled_v = 254 - map_to_byte(pix_value, max + 2, min + 1);
-                uint16_t colour_v = RGB_TO_16BIT(scaled_v, scaled_v, scaled_v);
+                uint16_t colour_v = RGB_TO_16BIT(fc_map[scaled_v][0], fc_map[scaled_v][1], fc_map[scaled_v][2]);
 
                 if (seg == 0 && line == 0 && line_cpy == 0 && pkt == 0 && sym == 0) {
                   // First pixel stats
@@ -349,7 +349,7 @@ void display_task(c_frame_t* c_frame)
       }
 
       // ESP_LOGI(TAG, "fStats: Min: %d, Max: %d, cVal: %d, cCol: %02x, hVal: %d, hCol: %02x", min, max, cold_v, cold_c, hot_v, hot_c);
-      vTaskDelay(100 / portTICK_RATE_MS);
+      // vTaskDelay(100 / portTICK_RATE_MS);
 
     }
   }
