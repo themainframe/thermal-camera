@@ -1,5 +1,5 @@
-#ifndef ILI9341_CMDS_H
-#define ILI9341_CMDS_H
+#ifndef ILI9341_COMMANDS_H
+#define ILI9341_COMMANDS_H
 
 #define ILI9341_NOP     0x00
 #define ILI9341_SWRESET 0x01

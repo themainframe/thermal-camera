@@ -1,3 +1,4 @@
 .pioenvs
 .piolibdeps
 build
+.DS_Store
