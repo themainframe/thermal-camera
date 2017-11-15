@@ -1,12 +1,16 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#include "esp_system.h"
+
 #define VSPI_PIN_NUM_MISO 19
 #define VSPI_PIN_NUM_MOSI 23
 #define VSPI_PIN_NUM_CLK 18
 #define VSPI_PIN_NUM_CS 5
 #define PIN_NUM_DC 2
 #define PIN_NUM_RESET 33
+
+#define DISPLAY_SPI_SPEED_HZ 30000000
 
 typedef struct {
   uint8_t half_pixels[640];
@@ -28,5 +32,6 @@ typedef struct {
 } spi_transaction_user_data_t;
 
 void display_init();
+void display_write_segment(uint8_t seg_position, display_segment_t* segment);
 
 #endif

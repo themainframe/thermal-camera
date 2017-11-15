@@ -7,8 +7,9 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "vospi.h"
-#include "ili9341_commands.h"
+#include "display/display.h"
+#include "display/ili9341_commands.h"
+#include "vospi/vospi.h"
 
 static const char* TAG = "Display";
 
@@ -152,7 +153,7 @@ void display_spi_init()
   spi_device_interface_config_t devcfg = {
     .command_bits = 0,
     .address_bits = 0,
-    .clock_speed_hz = 30000000,
+    .clock_speed_hz = DISPLAY_SPI_SPEED_HZ,
     .mode = 0,
     .spics_io_num = VSPI_PIN_NUM_CS,
     .queue_size = 64,
@@ -163,7 +164,7 @@ void display_spi_init()
 
   ret = spi_bus_initialize(VSPI_HOST, &bus_cfg, 2);
   assert(ret == ESP_OK);
-  ret = spi_bus_add_device(host, &devcfg, &spi);
+  ret = spi_bus_add_device(VSPI_HOST, &devcfg, &spi);
   assert(ret == ESP_OK);
 }
 
@@ -204,8 +205,8 @@ void display_init()
   int cmd = 0;
   while (ili_init_cmds[cmd].data_len != 0xff) {
     ESP_LOGI(TAG, "sending command @ index %d (CMD: %d)", cmd, ili_init_cmds[cmd].command);
-    ili_command(device, ili_init_cmds[cmd].command);
-    ili_data(device, ili_init_cmds[cmd].data, ili_init_cmds[cmd].data_len & 0x1F);
+    ili_command(ili_init_cmds[cmd].command);
+    ili_data(ili_init_cmds[cmd].data, ili_init_cmds[cmd].data_len & 0x1F);
     if (ili_init_cmds[cmd].data_len & 0x80) {
       vTaskDelay(100 / portTICK_RATE_MS);
     }
@@ -217,22 +218,42 @@ void display_init()
 
   // Power on!
   ESP_LOGI(TAG, "turning the display on");
-  ili_command(device, ILI9341_DISPON);
+  ili_command(ILI9341_DISPON);
 
   // Exit sleep
   ESP_LOGI(TAG, "waking up the display");
-  ili_command(device, ILI9341_SLPOUT);
+  ili_command(ILI9341_SLPOUT);
 
   // We'll always be writing full-widths of the display, so set this up now
   ESP_LOGI(TAG, "setting up display memory layout");
-  ili_command(device, ILI9341_CASET);
+  ili_command(ILI9341_CASET);
   uint8_t caset_d[4] = {
     0,
     0,
     319 >> 8,     // -
     319 & 0xff    // End position is 319
   };
-  ili_data(device, caset_d, 4);
+  ili_data(caset_d, 4);
 
-  // Ready for action.
+  // Ready for action!
+}
+
+/**
+ * Write out a single segment to the display at a defined position.
+ */
+void display_write_segment(uint8_t seg_position, display_segment_t* segment)
+{
+  // Jump to the page where this segment should start
+  ili_command(ILI9341_PASET);
+  uint8_t paset_d[4] = {
+    seg_position * 60 >> 8,
+    seg_position * 60 & 0xff,
+    (seg_position + 1) * 60 >> 8,
+    (seg_position + 1) * 60 & 0xff
+  };
+  ili_data(paset_d, 4);
+
+  // Draw the pixel values for the segment to the display
+  ili_command(ILI9341_RAMWR);
+  ili_data(segment, VOSPI_PACKETS_PER_SEGMENT_NORMAL * VOSPI_PACKET_SYMBOLS * 4);
 }

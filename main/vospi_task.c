@@ -10,7 +10,7 @@
 #include "driver/spi_master.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "vospi.h"
+#include "vospi/vospi.h"
 #include "shared_frame.h"
 
 /*
@@ -38,7 +38,7 @@ void vospi_task(c_frame_t* c_frame)
 
   // Initialise SPI hardware
   ESP_LOGI(TAG, "starting VoSPI initialisation...");
-  vospi_init(VOSPI_SPI_SPEED_MHZ);
+  vospi_init();
 
   while(1) {
 

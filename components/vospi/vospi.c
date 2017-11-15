@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "vospi.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/spi_master.h"
+#include "vospi/vospi.h"
 
 #define LOG_LOCAL_LEVEL ESP_LOG_INFO
 static const char* TAG = "VOSPIDriver";
@@ -33,7 +33,7 @@ int spi_read(void* buf, uint32_t len)
 /**
  * Initialise the VoSPI interface.
  */
-int vospi_init(uint32_t speed)
+int vospi_init()
 {
   esp_err_t ret;
   spi_bus_config_t buscfg = {
@@ -48,7 +48,7 @@ int vospi_init(uint32_t speed)
   spi_device_interface_config_t devcfg = {
     .command_bits = 0,
     .address_bits = 0,
-    .clock_speed_hz = speed,
+    .clock_speed_hz = VOSPI_SPI_SPEED_HZ,
     .mode = 3,
     .spics_io_num = PIN_NUM_CS,
     .queue_size = 1,

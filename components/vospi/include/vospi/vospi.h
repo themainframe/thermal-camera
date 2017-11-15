@@ -2,12 +2,13 @@
 #define VOSPI_H
 
 #include <stdint.h>
-#include "driver/spi_master.h"
 
 #define PIN_NUM_MISO 12
 #define PIN_NUM_MOSI 13
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS   15
+
+#define VOSPI_SPI_SPEED_HZ 20000000
 
 // Flip byte order of a word
 #define FLIP_WORD_BYTES(word) (word >> 8) | (word << 8)
@@ -50,7 +51,7 @@ typedef struct {
   vospi_segment_t segments[VOSPI_SEGMENTS_PER_FRAME];
 } vospi_frame_t;
 
-int vospi_init(uint32_t speed);
+int vospi_init();
 int transfer_segment(vospi_segment_t* segment);
 int sync_and_transfer_frame(vospi_frame_t* frame);
 int transfer_frame(vospi_frame_t* frame);

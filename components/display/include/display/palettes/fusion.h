@@ -1,7 +1,9 @@
-#ifndef FALSE_COLOUR_H
-#define FALSE_COLOUR_H
+#ifndef PALETTE_FUSION_H
+#define PALETTE_FUSION_H
 
-char fc_map[255][3] = {
+#include "display/palettes/palettes.h"
+
+palette_map_t fusion_palette_map = {
   {0,2,36},
   {1,2,37},
   {3,3,38},

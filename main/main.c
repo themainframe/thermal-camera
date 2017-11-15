@@ -1,9 +1,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
-#include "task/vospi_task.h"
-#include "task/display_task.h"
-#include "task/shared_frame.h"
+#include "vospi_task.h"
+#include "display_task.h"
+#include "shared_frame.h"
 
 static c_frame_t c_frame;
 
