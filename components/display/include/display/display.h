@@ -10,7 +10,7 @@
 #define PIN_NUM_DC 2
 #define PIN_NUM_RESET 33
 
-#define DISPLAY_SPI_SPEED_HZ 30000000
+#define DISPLAY_SPI_SPEED_HZ 32000000
 
 typedef struct {
   uint8_t half_pixels[640];

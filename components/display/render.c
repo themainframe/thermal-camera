@@ -22,8 +22,6 @@ uint8_t map_to_byte(uint16_t in, uint16_t in_min, uint16_t in_max)
  *
  * TODO: Describe the configuration as a config struct passed in rather than
  * separate parameters.
- *
- * TODO: memcpy lines instead of writing twice.
  */
 void render_vospi_segment(vospi_segment_t* in, display_segment_t* out, palette_t* palette, uint16_t min, uint16_t max)
 {
@@ -37,7 +35,18 @@ void render_vospi_segment(vospi_segment_t* in, display_segment_t* out, palette_t
         uint16_t pix_value = in->packets[line * 2 + pkt].symbols[sym] << 8 |
           in->packets[line * 2 + pkt].symbols[sym + 1];
         uint8_t scaled_v = 254 - map_to_byte(pix_value, max + 2, min + 1);
-        uint16_t colour_v = RGB_TO_16BIT(scaled_v, scaled_v, scaled_v);
+
+        // Use the provided pointer to a colour palette if available, otherwise greyscale
+        uint16_t colour_v;
+        if (palette) {
+          colour_v = RGB_TO_16BIT(
+            (*(palette->map_ptr))[scaled_v][0],
+            (*(palette->map_ptr))[scaled_v][1],
+            (*(palette->map_ptr))[scaled_v][2]
+          );
+        } else {
+          colour_v = RGB_TO_16BIT(scaled_v, scaled_v, scaled_v);
+        }
 
         // Write the same pixel twice, we're doubling width and replicate it onto the line below too
         out->lines[line * 2].half_pixels[(320 * pkt) + (sym * 2)] = colour_v >> 8;
