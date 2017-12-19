@@ -5,7 +5,6 @@
 #include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "vospi/vospi.h"
 #include "display/display.h"
@@ -39,21 +38,10 @@ void display_task(c_frame_t* c_frame)
   comp->rectangle->fill_colour = RGB_TO_16BIT(0, 255, 0);
   gui_add_comp(comp);
 
-  // Display power test
-  bool state = false;
-  gpio_set_direction(32, GPIO_MODE_OUTPUT);
-  gpio_set_direction(34, GPIO_MODE_OUTPUT);
-  gpio_set_level(32, true);
-  gpio_set_level(34, true);
-
   for (;;) {
 
     // Wait for a frame to be available
     if (xSemaphoreTake(c_frame->sem, 1000) == pdTRUE) {
-
-      ESP_LOGI(TAG, "changing state to %d", state);
-      state = !state;
-
 
       // Quickly copy the frame into our local buffer to release the sem faster
       memcpy(&c_frame_buf, &c_frame->frame, sizeof(vospi_frame_t));
