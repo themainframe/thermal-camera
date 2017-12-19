@@ -6,8 +6,6 @@
 #include "display/display.h"
 #include "display/palettes/palettes.h"
 
-static const char* TAG = "render";
-
 /**
  * Map a single 16-bit unsigned value to a single byte, given an input range.
  */
