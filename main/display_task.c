@@ -28,16 +28,6 @@ void display_task(c_frame_t* c_frame)
   ESP_LOGI(TAG, "start DisplayTask...");
   display_init();
 
-  // Add a rectangle component to the GUI (testing)
-  gui_comp_t* comp = malloc(sizeof(gui_comp_t));
-  comp->left = 10;
-  comp->top = 10;
-  comp->rectangle = malloc(sizeof(gui_comp_rectangle_t));
-  comp->rectangle->width = 10;
-  comp->rectangle->height = 8;
-  comp->rectangle->fill_colour = RGB_TO_16BIT(0, 255, 0);
-  gui_add_comp(comp);
-
   for (;;) {
 
     // Wait for a frame to be available

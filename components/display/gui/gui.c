@@ -45,6 +45,12 @@ void render_comp(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
 {
   ESP_LOGD(TAG, "drawing comp @ top: %d, left: %d ", comp->top, comp->left);
 
+  // Check if the comp is hidden, if so, skip it
+  if (!comp->visible) {
+    ESP_LOGD(TAG, "...not rendering hidden comp");
+    return;
+  }
+
   if (comp->rectangle != NULL) {
     ESP_LOGD(
       TAG, "...comp has rectangle with dims: width: %d, height: %d",

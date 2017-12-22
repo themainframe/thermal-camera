@@ -21,6 +21,7 @@ typedef struct {
 } gui_comp_rectangle_t;
 
 typedef struct {
+  bool visible;
   uint16_t left;
   uint8_t top;
   gui_comp_rectangle_t* rectangle;
