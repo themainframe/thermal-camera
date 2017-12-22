@@ -4,11 +4,11 @@
 #include "esp_system.h"
 
 #define VSPI_PIN_NUM_MISO 19
-#define VSPI_PIN_NUM_MOSI 23
 #define VSPI_PIN_NUM_CLK 18
+#define VSPI_PIN_NUM_MOSI 23
 #define VSPI_PIN_NUM_CS 5
-#define PIN_NUM_DC 2
-#define PIN_NUM_RESET 33
+#define PIN_NUM_DISPLAY_DC 22
+#define PIN_NUM_DISPLAY_RESET 21
 
 #define DISPLAY_SPI_SPEED_HZ 32000000
 

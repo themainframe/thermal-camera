@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
+#define PIN_NUM_MOSI NULL
 #define PIN_NUM_MISO 12
-#define PIN_NUM_MOSI 13
 #define PIN_NUM_CLK  14
 #define PIN_NUM_CS   15
 

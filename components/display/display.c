@@ -88,7 +88,7 @@ void ili_command(const uint8_t command)
   transaction->tx_buffer = &command;
   transaction->user = &user_data;
   user_data.dc = false;
-  user_data.dc_io_num = PIN_NUM_DC;
+  user_data.dc_io_num = PIN_NUM_DISPLAY_DC;
   ret = spi_device_transmit(spi, transaction);
   assert(ret == ESP_OK);
   free(transaction);
@@ -114,7 +114,7 @@ void ili_data(void* data, int len)
   transaction->tx_buffer = data;
   transaction->user = &user_data;
   user_data.dc = true;
-  user_data.dc_io_num = PIN_NUM_DC;
+  user_data.dc_io_num = PIN_NUM_DISPLAY_DC;
   ret = spi_device_transmit(spi, transaction);
   assert(ret == ESP_OK);
   free(transaction);
@@ -189,14 +189,14 @@ void display_init()
 
   //Initialize non-SPI GPIOs
   ESP_LOGI(TAG, "setting up GPIO pins");
-  gpio_set_direction(PIN_NUM_DC, GPIO_MODE_OUTPUT);
-  gpio_set_direction(PIN_NUM_RESET, GPIO_MODE_OUTPUT);
+  gpio_set_direction(PIN_NUM_DISPLAY_DC, GPIO_MODE_OUTPUT);
+  gpio_set_direction(PIN_NUM_DISPLAY_RESET, GPIO_MODE_OUTPUT);
 
   //Reset the display
   ESP_LOGI(TAG, "resetting the display");
-  gpio_set_level(PIN_NUM_RESET, 0);
+  gpio_set_level(PIN_NUM_DISPLAY_RESET, 0);
   vTaskDelay(100 / portTICK_RATE_MS);
-  gpio_set_level(PIN_NUM_RESET, 1);
+  gpio_set_level(PIN_NUM_DISPLAY_RESET, 1);
   vTaskDelay(100 / portTICK_RATE_MS);
   ESP_LOGI(TAG, "display reset done");
 
