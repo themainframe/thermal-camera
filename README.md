@@ -6,7 +6,7 @@ The thermal camera driver is mostly ported from my previous [leptonic](https://g
 
 For (much) more information, see my blog post on [damow.net](https://damow.net/building-a-thermal-camera).
 
-I compiled my firmware against the [ESP32 IoT Development Framework](https://github.com/espressif/esp-idf), commit `6cc8099`.
+I compiled my firmware against the [ESP32 IoT Development Framework](https://github.com/espressif/esp-idf), commit `6cc8099` with toolchain version 1.22.0-73-ge28a011.
 
 ## Building
 
