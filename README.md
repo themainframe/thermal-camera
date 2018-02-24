@@ -12,7 +12,7 @@ I compiled my firmware against the [ESP32 IoT Development Framework](https://git
 
 To build, check out this repository first.
 
-Install the appropriate ESP32 Extensa toolchain for your system - see [https://esp-idf.readthedocs.io/en/latest/get-started/index.html](https://esp-idf.readthedocs.io/en/latest/get-started/index.html). Make sure you're looking at the v3.0-rc1 version documentation, otherwise the wrong toolchain links will be provided. It's critical that the compilation is performed with the correct toolchain.
+Install the appropriate ESP32 Extensa toolchain for your system - see [https://esp-idf.readthedocs.io/en/v3.0-rc1/get-started/index.html](https://esp-idf.readthedocs.io/en/v3.0-rc1/get-started/index.html). Make sure you're looking at the v3.0-rc1 version documentation, otherwise the wrong toolchain links will be provided. It's critical that the compilation is performed with the correct toolchain.
 
 Also check out the ESP32 IoT Development Framework (IDF):
 
