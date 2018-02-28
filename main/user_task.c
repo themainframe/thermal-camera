@@ -34,6 +34,7 @@ void user_task()
 
   for(;;) {
 
+    #if !CONFIG_NO_SOFTPOWER
     // Sniff the power switch state
     if(!softpower_get_desired_state()) {
       // The power switch is off, immediately go into deep sleep...
@@ -41,6 +42,7 @@ void user_task()
       softpower_pf_off();
       softpower_deep_sleep();
     }
+    #endif
 
     // Flash the heartbeat pip
     heartbeat_pip_comp->visible = !heartbeat_pip_comp->visible;

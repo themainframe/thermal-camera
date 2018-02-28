@@ -1,0 +1,10 @@
+menu "Thermal Camera"
+
+config NO_SOFTPOWER
+    bool "Disable softpower control"
+    default 0
+    help
+        With this option on, the system will be powered on constantly.
+        With this option off, the system will power on only when pin 4 is pulled high.
+
+endmenu
