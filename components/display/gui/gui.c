@@ -74,7 +74,7 @@ void render_comp(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
 void render_rectangle(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
 {
   // Is the rectangle entirely outside this segment?
-  if (comp->top + comp->rectangle->height < SEG_START(seg) || comp->top > SEG_END(seg)) {
+  if (comp->top + comp->rectangle->height < SEG_START(seg) || comp->top >= SEG_END(seg)) {
     ESP_LOGD(TAG, "nothing to draw in segment %d", seg);
     return;
   }
@@ -103,7 +103,7 @@ void render_rectangle(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_seg
 void render_text(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
 {
   // Is the text entirely outside this segment?
-  if (comp->top + 8 < SEG_START(seg) || comp->top > SEG_END(seg)) {
+  if (comp->top + 8 < SEG_START(seg) || comp->top >= SEG_END(seg)) {
     ESP_LOGD(TAG, "nothing to draw in segment %d", seg);
     return;
   }
