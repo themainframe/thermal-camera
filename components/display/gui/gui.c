@@ -58,6 +58,14 @@ void render_comp(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
     );
     render_rectangle(comp, seg, disp_segment);
   }
+
+  if (comp->text != NULL) {
+    ESP_LOGD(
+      TAG, "...comp has text <%s>",
+      comp->text->text
+    );
+    render_text(comp, seg, disp_segment);
+  }
 }
 
 /**
@@ -92,7 +100,7 @@ void render_rectangle(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_seg
 /**
  * Render a text string in the current segment.
  */
-void render_text(gui_comp_t* comp, uint8_t seg, display_segment_t* display_segment)
+void render_text(gui_comp_t* comp, uint8_t seg, display_segment_t* disp_segment)
 {
   // Is the text entirely outside this segment?
   if (comp->top + 8 < SEG_START(seg) || comp->top > SEG_END(seg)) {
@@ -100,15 +108,29 @@ void render_text(gui_comp_t* comp, uint8_t seg, display_segment_t* display_segme
     return;
   }
 
+  // Only loop over display lines that are affected by this comp
   uint8_t start_line = SEG_START(seg) > comp->top ? 0 : comp->top % 60;
   uint8_t end_line = comp->top + 8 >= SEG_END(seg) ?
     60 : ((comp->top + 8) % 60);
 
   // Draw each character
-  for (uint8_t c = 0; c < strlen(comp->text->text); c ++) {
-    for (uint8_t line = start_line; line < end_line; line ++) {
+  for (uint8_t line = start_line; line < end_line; line ++) {
 
-      // Derive the line of the actual character (0 = top, 7 = last)
+    // Derive the line of the character bitmap we'll draw on this display line
+    uint8_t char_line = ((seg * 60) + line) - comp->top;
+
+    for (uint8_t c = 0; c < strlen(comp->text->text); c ++) {
+
+      // Derive the horz start position of this character (8 wide)
+      uint16_t char_start_col = comp->left + (c * 8);
+
+      // Copy each line of the character into place
+      for (uint8_t b = 0; b < 8; b ++) {
+        if (font_8x8_basic[(int)comp->text->text[c]][char_line] & (1 << b)) {
+          disp_segment->lines[line].half_pixels[(char_start_col + b) * 2] = comp->text->colour >> 8;
+          disp_segment->lines[line].half_pixels[(char_start_col + b) * 2 + 1] = comp->text->colour & 0xff;
+        }
+      }
     }
   }
 }
