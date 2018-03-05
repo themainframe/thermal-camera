@@ -4,9 +4,10 @@
 #include "freertos/semphr.h"
 #include "vospi_task.h"
 #include "display_task.h"
-#include "user_task.h"
+#include "gui_task.h"
 #include "shared_frame.h"
 #include "softpower.h"
+#include "cci/cci.h"
 
 static c_frame_t c_frame;
 
@@ -31,5 +32,5 @@ void app_main()
   // Start tasks
   xTaskCreate(&vospi_task, "vospi_task", 30000, &c_frame, 5, NULL);
   xTaskCreate(&display_task, "display_task", 16000, &c_frame, 5, NULL);
-  xTaskCreate(&user_task, "user_task", 16000, NULL, 5, NULL);
+  xTaskCreate(&gui_task, "gui_task", 16000, NULL, 5, NULL);
 }
