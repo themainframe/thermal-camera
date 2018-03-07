@@ -41,14 +41,21 @@ void gui_task()
   strcpy(text_comp->text->text, "RUN");
   text_comp->text->colour = RGB_TO_16BIT(0, 255, 0);
   gui_add_comp(text_comp);
+  
 
-  // Set up the CCI
-  cci_init();
+  // ESP_LOGI(TAG, "waiting for CCI setup...")
+  // vTaskDelay(10000 / portTICK_RATE_MS);
+  // cci_init();
+  // ESP_LOGI(TAG, "CCI read imminent...")
+  // while(true) {
+  //   ESP_LOGI(TAG, "Uptime: %d", cci_get_uptime());
+  //   vTaskDelay(1000 / portTICK_RATE_MS);
+  // }
 
   for(;;) {
 
     // Detect the FFC state
-    ESP_LOGI(TAG, "FFC state: %d", cci_get_ffc_state());
+    // ESP_LOGI(TAG, "FFC state: %d", cci_get_ffc_state());
 
     #if !CONFIG_NO_SOFTPOWER
     // Sniff the power switch state
@@ -63,6 +70,6 @@ void gui_task()
     // Flash the heartbeat pip
     heartbeat_pip_comp->visible = !heartbeat_pip_comp->visible;
 
-    vTaskDelay(3000 / portTICK_RATE_MS);
+    vTaskDelay(600 / portTICK_RATE_MS);
   }
 }
