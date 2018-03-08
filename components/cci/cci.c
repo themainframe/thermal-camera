@@ -184,8 +184,6 @@ int cci_write_register(uint16_t reg, uint16_t value)
  */
 uint16_t cci_read_register(uint16_t reg)
 {
-  portMUX_TYPE mut = portMUX_INITIALIZER_UNLOCKED;
-  taskENTER_CRITICAL(&mut);
 
   // Response
   uint8_t resp_h, resp_l = 0;
@@ -194,18 +192,17 @@ uint16_t cci_read_register(uint16_t reg)
   ESP_LOGD(TAG, "preparing register read (reg %02x)...", reg);
 
   // Write the register address we'd like to read
-  ESP_LOGD(TAG, "performing register read setup...");
-  i2c_start();
-  bool setup_ok = i2c_tx(CCI_ADDRESS << 1);
-  setup_ok &= i2c_tx(reg >> 8 & 0xff);
-  setup_ok &= i2c_tx(reg & 0xff);
+  // ESP_LOGD(TAG, "performing register read setup...");
+  // i2c_start();
+  // bool setup_ok = i2c_tx(CCI_ADDRESS << 1);
+  // setup_ok &= i2c_tx(reg >> 8 & 0xff);
+  // setup_ok &= i2c_tx(reg & 0xff);
 
-  // Check the acks
-  if (!setup_ok) {
-    taskEXIT_CRITICAL(&mut);
-    ESP_LOGW(TAG, "setup portion of register read %02x was not properly ack'd", reg);
-    return -1;
-  }
+  // // Check the acks
+  // if (!setup_ok) {
+  //   ESP_LOGW(TAG, "setup portion of register read %02x was not properly ack'd", reg);
+  //   return -1;
+  // }
 
   // Now perform a read
   i2c_start();
@@ -219,7 +216,6 @@ uint16_t cci_read_register(uint16_t reg)
 
   // Send the queued command
   if (!read_ok) {
-    taskEXIT_CRITICAL(&mut);
     ESP_LOGW(TAG, "read portion of register read %02x was not properly ack'd", reg);
     return -1;
   }
@@ -227,7 +223,6 @@ uint16_t cci_read_register(uint16_t reg)
   ESP_LOGD(TAG, "read complete - h: %02x, l: %02x",  resp_h, resp_l);
 
   // Return the response data
-  taskEXIT_CRITICAL(&mut);
   return resp_h << 8 | resp_l;
 }
 
@@ -327,13 +322,7 @@ uint32_t cci_get_uptime()
   cci_write_register(CCI_REG_COMMAND, CCI_CMD_SYS_GET_UPTIME);
   wait_for_busy_deassert(CCI_BUSY_WAIT_TIMEOUT);
 
-  // Get the command result
-  int8_t command_result = get_command_result();
-  if (command_result != 0) {
-    ESP_LOGE(TAG, "command failed - code: %d", command_result);
-    return 0;
-  }
-
-  return cci_read_register(CCI_REG_DATA_0) |
-    cci_read_register(CCI_REG_DATA_0 + CCI_WORD_LENGTH) << 16;
+  uint16_t ls_word = cci_read_register(CCI_REG_DATA_0);
+  uint16_t ms_word = cci_read_register(CCI_REG_DATA_0 + CCI_WORD_LENGTH);
+  return ms_word << 16 | ls_word;
 }

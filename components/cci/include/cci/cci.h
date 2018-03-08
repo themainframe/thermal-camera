@@ -5,8 +5,8 @@
 #define CCI_I2C_FREQ 100000
 
 // Data & clock pins for the CCI
-#define CCI_SDA_PIN 32
-#define CCI_SCL_PIN 33
+#define CCI_SDA_PIN 17
+#define CCI_SCL_PIN 16
 
 // CCI constants
 #define CCI_WORD_LENGTH 0x02

@@ -30,7 +30,7 @@ void app_main()
   softpower_pf_on();
 
   // Start tasks
-  xTaskCreate(&vospi_task, "vospi_task", 30000, &c_frame, 5, NULL);
-  xTaskCreate(&display_task, "display_task", 16000, &c_frame, 5, NULL);
+  // xTaskCreate(&vospi_task, "vospi_task", 30000, &c_frame, 5, NULL);
+  // xTaskCreate(&display_task, "display_task", 16000, &c_frame, 5, NULL);
   xTaskCreate(&gui_task, "gui_task", 16000, NULL, 5, NULL);
 }
