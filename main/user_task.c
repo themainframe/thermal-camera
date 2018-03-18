@@ -20,12 +20,12 @@ static const char* TAG = "UserTask";
 
 void user_task()
 {
-
   // Add a rectangle component to the GUI (testing)
   gui_comp_t* heartbeat_pip_comp = malloc(sizeof(gui_comp_t));
   heartbeat_pip_comp->visible = true;
   heartbeat_pip_comp->left = 10;
   heartbeat_pip_comp->top = 10;
+  heartbeat_pip_comp->text = NULL;
   heartbeat_pip_comp->rectangle = malloc(sizeof(gui_comp_rectangle_t));
   heartbeat_pip_comp->rectangle->width = 10;
   heartbeat_pip_comp->rectangle->height = 8;
